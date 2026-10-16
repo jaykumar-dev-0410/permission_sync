@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:yaml/yaml.dart';
 import 'package:permission_sync/src/config/permission_template.dart';
+import 'package:permission_sync/src/config/config_validator.dart';
 
 const String packageVersion = '0.1.0';
 
@@ -13,6 +14,7 @@ Usage:
 
 Commands:
   init       Initialize permission_sync in a Flutter project
+  validate   Validate permissions.yaml
 
 Options:
   -h, --help       Show this help message
@@ -46,6 +48,19 @@ int runCli(List<String> arguments, {StringSink? out, StringSink? err}) {
     }
 
     return initializeProject(
+      workingDirectory: Directory.current,
+      out: stdoutSink,
+      err: stderrSink,
+    );
+  }
+
+  if (arguments.first == 'validate') {
+    if (arguments.length != 1) {
+      stderrSink.writeln('Usage: permission_sync validate');
+      return 64;
+    }
+
+    return validateProjectConfig(
       workingDirectory: Directory.current,
       out: stdoutSink,
       err: stderrSink,
@@ -134,6 +149,52 @@ int initializeProject({
     return 0;
   } on FileSystemException catch (error) {
     err.writeln('Error: Could not create permissions.yaml: $error');
+    return 1;
+  }
+}
+
+/// Validates permissions.yaml in the nearest Flutter project.
+int validateProjectConfig({
+  required Directory workingDirectory,
+  required StringSink out,
+  required StringSink err,
+}) {
+  final root = findFlutterProjectRoot(workingDirectory);
+
+  if (root == null) {
+    err.writeln('Error: No Flutter project found.');
+    return 1;
+  }
+
+  final configFile = File(
+    '${root.path}${Platform.pathSeparator}permissions.yaml',
+  );
+
+  if (!configFile.existsSync()) {
+    err.writeln(
+      'Error: permissions.yaml not found. Run "permission_sync init" first.',
+    );
+    return 1;
+  }
+
+  try {
+    final source = configFile.readAsStringSync();
+    final errors = validatePermissionConfig(source);
+
+    if (errors.isNotEmpty) {
+      err.writeln('Configuration is invalid:');
+
+      for (final error in errors) {
+        err.writeln('  - $error');
+      }
+
+      return 1;
+    }
+
+    out.writeln('permissions.yaml is valid.');
+    return 0;
+  } on FileSystemException catch (error) {
+    err.writeln('Error: Could not read permissions.yaml: $error');
     return 1;
   }
 }
