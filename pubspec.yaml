@@ -1,15 +1,19 @@
+
 name: permission_sync
-description: A sample command-line application.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: A declarative CLI for managing Flutter permissions across Android and iOS.
+version: 0.1.0
+repository: https://github.com/jaykumar-dev-0410/permission_sync
 
 environment:
   sdk: ^3.13.0
 
-# Add regular dependencies here.
 dependencies:
   path: ^1.9.0
+  yaml: ^3.1.4
 
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6
+
+executables:
+  permission_sync:
